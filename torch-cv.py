@@ -2,9 +2,18 @@
 import torch
 import torchvision
 import numpy as np
+import time
+
+def sync_e():
+    e = torch.cuda.Event()
+    e.record()
+    e.synchronize()
+
+sync_e()
+start = time.time()
 
 model_path = './model_dir/resnet50.pt'
-downloaded_model = False
+downloaded_model = True
 
 if downloaded_model:
     scripted_model = torch.jit.load(model_path)
@@ -18,8 +27,6 @@ else:
 
     input_shape = [1, 3, 224, 224]
     input_data = torch.randn(input_shape).cuda(0)
-    for i in range(99999):
-        print(model(input_data))
     scripted_model = torch.jit.trace(model, input_data).eval()
     torch.jit.save(scripted_model, model_path)
 
@@ -47,5 +54,7 @@ img = np.expand_dims(img, 0)
 input_img = torch.from_numpy(img)
 input_img = input_img.cuda()
 # print(input_img)
-for i in range(99999):
-    print(scripted_model(input_img))
+print(scripted_model(input_img))
+sync_e()
+end = time.time()
+print("Time cost: ", end - start)
